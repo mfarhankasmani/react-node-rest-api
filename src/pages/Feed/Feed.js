@@ -131,34 +131,51 @@ class Feed extends Component {
     formData.append("title", postData.title);
     formData.append("content", postData.content);
     formData.append("image", postData.image);
-    let url = "http://localhost:8080/feed/post";
-    let method = "POST";
-    if (this.state.editPost) {
-      url = `http://localhost:8080/feed/post/${this.state.editPost._id}`;
-      method = "PUT";
-    }
 
-    fetch(url, {
-      method,
+    let graphqlQuery = {
+      query: `
+        mutation {
+          creatPost(postInput: {title: "${postData.title}", content: "${postData.content}", imageUrl: "something"}){
+            _id
+            title
+            creator {
+              name
+            }
+            createdAt
+          }
+        }
+      `,
+    };
+
+    fetch("http://localhost:8080/graphql", {
+      method: "POST",
       headers: {
         Authorization: `Bearer ${this.props.token}`,
+        "Content-Type": "application/json",
       },
-      body: formData,
+      body: JSON.stringify(graphqlQuery),
     })
       .then((res) => {
-        if (res.status !== 200 && res.status !== 201) {
-          throw new Error("Creating or editing a post failed!");
-        }
         return res.json();
       })
       .then((resData) => {
-        // const post = {
-        //   _id: resData.post._id,
-        //   title: resData.post.title,
-        //   content: resData.post.content,
-        //   creator: resData.post.creator,
-        //   createdAt: resData.post.createdAt,
-        // };
+        const { errors } = resData;
+        if (errors && errors[0].status === 422) {
+          throw new Error("Creating or editing a post failed!");
+        }
+        if (errors) {
+          console.log("Error!");
+          throw new Error("Creating or editing a post failed!");
+        }
+        console.log({ resData });
+        const { creatPost } = resData.data;
+        const post = {
+          _id: creatPost._id,
+          title: creatPost.title,
+          content: creatPost.content,
+          creator: creatPost.creator,
+          createdAt: creatPost.createdAt,
+        };
         this.setState((prevState) => {
           return {
             isEditing: false,
