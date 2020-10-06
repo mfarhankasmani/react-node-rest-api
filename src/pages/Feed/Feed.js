@@ -181,6 +181,24 @@ class Feed extends Component {
           `,
         };
 
+        if (this.state.editPost) {
+          graphqlQuery = {
+            query: `
+              mutation {
+                updatePost(postInput: {title: "${postData.title}", content: "${postData.content}", imageUrl: "${imageUrl}"}, id: "${this.state.editPost._id}"){
+                  _id
+                  title
+                  imageUrl
+                  creator {
+                    name
+                  }
+                  createdAt
+                }
+              }
+            `,
+          };
+        }
+
         return fetch("http://localhost:8080/graphql", {
           method: "POST",
           headers: {
@@ -203,14 +221,15 @@ class Feed extends Component {
           throw new Error("Creating or editing a post failed!");
         }
         console.log({ resData });
-        const { creatPost } = resData.data;
+        const { creatPost, updatePost } = resData.data;
+        const postData = creatPost || updatePost
         const post = {
-          _id: creatPost._id,
-          title: creatPost.title,
-          content: creatPost.content,
-          creator: creatPost.creator,
-          createdAt: creatPost.createdAt,
-          imagePath: creatPost.imageUrl,
+          _id: postData._id,
+          title: postData.title,
+          content: postData.content,
+          creator: postData.creator,
+          createdAt: postData.createdAt,
+          imagePath: postData.imageUrl,
         };
         this.setState((prevState) => {
           let updatedPosts = [...prevState.posts];
